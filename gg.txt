@@ -184,6 +184,35 @@ return NoContent();
 }
 }
 
+=========>
+On Command prompt2:
+1) Getting a list of items:
+Command:
+curl --insecure https://localhost:5001/api/glossary
+Output:
+
+2) Getting a single item
+Command:
+curl --insecure https://localhost:5001/api/glossary/MVC
+Output:
+
+2) Creating an item
+Command:
+
+curl --insecure -X POST -d "{\"term\": \"MFA\", \"definition\":\"An authentication process.\"}" -H "Content-
+Type:application/json" https://localhost:5001/api/glossary
+
+Output:
+
+4)Update Item
+Command:
+curl --insecure -X PUT -d "{\"term\": \"MVC\", \"definition\":\"Modified record of Model View
+Controller.\"}" -H "Content-Type:application/json" https://localhost:5001/api/glossary
+Output:
+
+5) Delete Item
+Command:
+curl --insecure --request DELETE --url https://localhost:5001/api/glossary/openid
 
 
 --------------------------------------------------------------------BSSS
