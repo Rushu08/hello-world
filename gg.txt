@@ -1,0 +1,289 @@
+4) Go to controllers folder and modify HomeController.cs file to match following:
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using MyMVC.Models;
+namespace MyMVC.Controllers
+{
+public class HomeController : Controller
+{
+
+public String Index()
+{
+return "Hello World";
+}
+}
+}
+
+5) Run the project
+
+7)Go to models folder and add new file StockQuote.cs to it with following content
+using System;
+namespace MyMVC.Models
+{
+public class StockQuote
+{ public string Symbol {get;set;}
+public int Price{get;set;}
+}
+}
+
+
+8)Now Add View to folder then home folder in it and modify index.cshtml file to match following
+@{
+ViewData["Title"] = "Home Page";
+}
+<div>
+Symbol: @Model.Symbol <br/>
+Price: $@Model.Price <br/>
+</div>
+
+
+
+9)Now modify HomeController.cs file to match following:
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using MyMVC.Models;
+namespace MyMVC.Controllers
+{
+public class HomeController : Controller
+{ public async Task <IActionResult> Index()
+{
+var model= new StockQuote{ Symbol='HLLO', Price=3200};
+return View(model);
+}
+}
+}
+
+10)Now run
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------RAPI
+
+1) D:\Glossary\GlossaryItem.cs (type it in notepad and save as all files)
+//GlossaryItem.cs
+namespace Glossary
+{
+public class GlossaryItem
+{
+public string Term { get; set; }
+public string Definition { get; set; }
+}
+}
+
+
+
+2) D:\Glossary\Controllers\ GlossaryController.cs (type it in notepad and save as all files)
+//Controllers/GlossaryController.cs
+using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using System.IO;
+namespace Glossary.Controllers
+{
+[ApiController]
+[Route("api/[controller]")]
+public class GlossaryController: ControllerBase
+{
+private static List<GlossaryItem> Glossary = new List<GlossaryItem> {
+new GlossaryItem
+{
+Term= "HTML",
+Definition = "Hypertext Markup Language"
+},
+
+new GlossaryItem
+{
+Term= "MVC",
+Definition = "Model View Controller"
+},
+new GlossaryItem
+{
+Term= "OpenID",
+Definition = "An open standard for authentication"
+}
+};
+[HttpGet]
+public ActionResult<List<GlossaryItem>> Get()
+{ return Ok(Glossary);
+}
+[HttpGet]
+[Route("{term}")]
+public ActionResult<GlossaryItem> Get(string term)
+{
+var glossaryItem = Glossary.Find(item =>
+item.Term.Equals(term, StringComparison.InvariantCultureIgnoreCase));
+if (glossaryItem == null)
+{ return NotFound();
+} else
+{
+return Ok(glossaryItem);
+}
+}
+[HttpPost]
+public ActionResult Post(GlossaryItem glossaryItem)
+{
+var existingGlossaryItem = Glossary.Find(item =>
+item.Term.Equals(glossaryItem.Term, StringComparison.InvariantCultureIgnoreCase));
+if (existingGlossaryItem != null)
+{
+return Conflict("Cannot create the term because it already exists.");
+}
+else
+{
+Glossary.Add(glossaryItem);
+var resourceUrl = Path.Combine(Request.Path.ToString(), Uri.EscapeUriString(glossaryItem.Term));
+return Created(resourceUrl, glossaryItem);
+}
+}
+
+[HttpPut]
+public ActionResult Put(GlossaryItem glossaryItem)
+{
+var existingGlossaryItem = Glossary.Find(item =>
+item.Term.Equals(glossaryItem.Term, StringComparison.InvariantCultureIgnoreCase));
+if (existingGlossaryItem == null)
+{
+return BadRequest("Cannot update a nont existing term.");
+} else
+{
+existingGlossaryItem.Definition = glossaryItem.Definition;
+return Ok();
+}
+}
+[HttpDelete]
+[Route("{term}")]
+public ActionResult Delete(string term)
+{
+var glossaryItem = Glossary.Find(item =>
+item.Term.Equals(term, StringComparison.InvariantCultureIgnoreCase));
+if (glossaryItem == null)
+{ return NotFound();
+}
+else
+{ Glossary.Remove(glossaryItem);
+return NoContent();
+}
+}
+}
+}
+
+
+
+--------------------------------------------------------------------BSSS
+
+Worker.cs
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+namespace Worker1
+{
+public class Worker : BackgroundService
+{
+
+private readonly ILogger<Worker> _logger;
+private HttpClient client;
+public Worker(ILogger<Worker> logger)
+{
+_logger = logger;
+}
+public override Task StartAsync(CancellationToken cancellationToken)
+{
+client = new HttpClient();
+return base.StartAsync(cancellationToken);
+}
+public override Task StopAsync(CancellationToken cancellationToken)
+{
+client.Dispose();
+return base.StopAsync(cancellationToken);
+}
+protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+while (!stoppingToken.IsCancellationRequested)
+{
+/*_logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);*/
+var result = await client.GetAsync("https://www.iamtimcorey.com");
+if (result.IsSuccessStatusCode)
+{
+_logger.LogInformation("the website is up {StatusCode}", result.StatusCode);
+}
+else
+{
+_logger.LogError("the website is down {StatusCode}", result.StatusCode);
+}
+await Task.Delay(5000, stoppingToken);
+}
+}
+}
+}
+
+
+
+
+Program.cs
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Serilog;
+using Serilog.Events;
+namespace Worker1
+{
+public class Program
+{
+public static void Main(string[] args)
+{
+Log.Logger = new LoggerConfiguration()
+.MinimumLevel.Debug()
+.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+.Enrich.FromLogContext()
+.WriteTo.File(@"D:\Msc-IT\Sem - 2\Microservice\LogFile.txt")
+.CreateLogger();
+
+try
+{
+Log.Information("Starting service");
+CreateHostBuilder(args).Build().Run();
+}
+catch (Exception ae)
+{
+Log.Fatal(ae, "service not started");
+return;
+}
+finally
+{
+Log.CloseAndFlush();
+}
+}
+public static IHostBuilder CreateHostBuilder(string[] args) =>
+Host.CreateDefaultBuilder(args)
+.ConfigureServices((hostContext, services) =>
+{
+services.AddHostedService<Worker>();
+})
+.UseSerilog();
+}
+}
